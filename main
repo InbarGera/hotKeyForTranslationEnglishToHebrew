@@ -1,0 +1,147 @@
+#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+; #Warn  ; Enable warnings to assist with detecting common errors.
+; #InstallKeybdHook
+SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
+SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
+
+isHebrewLetter(character){
+	ord := Ord(character)
+	if(ord >= 1488 && ord <= 1514){
+		return 1	
+	}
+	return 0
+}
+
+IsHebrewToEnglish(toTranslate){
+	Loop, parse, toTranslate
+	{
+		if(isHebrewLetter(A_LoopField) == 1)
+			return 1
+	}
+	return 0
+}
+
+GenLookupTable(toTranslate){
+	table := []
+
+	i := 0
+	While (i < 1520){
+		table[i] := i
+		i := i + 1
+	}
+
+	if(IsHebrewToEnglish(toTranslate) == 1){
+		table[Ord("/")] := Ord("q")
+		table[Ord("'")] := Ord("w")
+		table[Ord("ק")] := Ord("e")
+		table[Ord("ר")] := Ord("r")
+		table[Ord("א")] := Ord("t")
+		table[Ord("ט")] := Ord("y")
+		table[Ord("ו")] := Ord("u")
+		table[Ord("ן")] := Ord("i")
+		table[Ord("ם")] := Ord("o")
+		table[Ord("פ")] := Ord("p")
+		table[Ord("ש")] := Ord("a")
+		table[Ord("ד")] := Ord("s")
+		table[Ord("ג")] := Ord("d")
+		table[Ord("כ")] := Ord("f")
+		table[Ord("ע")] := Ord("g")
+		table[Ord("י")] := Ord("h")
+		table[Ord("ח")] := Ord("j")
+		table[Ord("ל")] := Ord("k")
+		table[Ord("ך")] := Ord("l")
+		table[Ord("ז")] := Ord("z")
+		table[Ord("ס")] := Ord("x")
+		table[Ord("ב")] := Ord("c")
+		table[Ord("ה")] := Ord("v")
+		table[Ord("נ")] := Ord("b")
+		table[Ord("מ")] := Ord("n")
+		table[Ord("צ")] := Ord("m")
+	}
+	else{
+		table[Ord("q")] := Ord("/")
+		table[Ord("w")] := Ord("'")
+		table[Ord("e")] := Ord("ק")
+		table[Ord("r")] := Ord("ר")
+		table[Ord("t")] := Ord("א")
+		table[Ord("y")] := Ord("ט")
+		table[Ord("u")] := Ord("ו")
+		table[Ord("i")] := Ord("ן")
+		table[Ord("o")] := Ord("ם")
+		table[Ord("p")] := Ord("פ")
+		table[Ord("a")] := Ord("ש")
+		table[Ord("s")] := Ord("ד")
+		table[Ord("d")] := Ord("ג")
+		table[Ord("f")] := Ord("כ")
+		table[Ord("g")] := Ord("ע")
+		table[Ord("h")] := Ord("י")
+		table[Ord("j")] := Ord("ח")
+		table[Ord("k")] := Ord("ל")
+		table[Ord("l")] := Ord("ך")
+		table[Ord("z")] := Ord("ז")
+		table[Ord("x")] := Ord("ס")
+		table[Ord("c")] := Ord("ב")
+		table[Ord("v")] := Ord("ה")
+		table[Ord("b")] := Ord("נ")
+		table[Ord("n")] := Ord("מ")
+		table[Ord("m")] := Ord("צ")
+		table[Ord(",")] := Ord("ת")
+		table[Ord(".")] := Ord("ץ")
+		table[Ord(";")] := Ord("ף")
+		
+		; same for upper case, using lower case values
+		i := Ord("A")
+		While (i <= Ord("Z")){
+			table[i] := table[i + Ord("a") - Ord("A")]
+			i := i + 1
+		}
+	}
+
+	return table
+}
+
+Translate(toTranslate){
+	translationLookupTable := GenLookupTable(toTranslate)
+
+	res := ""
+	Loop, parse, toTranslate
+	{
+		res .= Chr(translationLookupTable[Ord(A_LoopField)])
+	}
+
+	return res
+}
+
+SetInputLang(Lang)
+{
+    WinExist("A")
+    ControlGetFocus, CtrlInFocus
+    PostMessage, 0x50, 0, % Lang, %CtrlInFocus%
+}	
+
+ChangeLanguage(isHebrewToEnglish){
+	if (isHebrewToEnglish == 1){
+		newLanguageCode := 0x409 ; English - US
+	}
+	else{
+		newLanguageCode := 0x40D ; Hebrew
+	}
+
+	SetInputLang(newLanguageCode)
+	return 
+}
+
+^j::
+oCB := Clipboard  ; save clipboard contents
+Clipboard  := ""
+Send, ^a
+Send, ^c
+ClipWait,1
+
+ChangeLanguage(IsHebrewToEnglish(Clipboard))
+
+toPrint := Translate(Clipboard)
+Send % toPrint
+
+ClipBoard := oCB ; return original Clipboard contents
+return
